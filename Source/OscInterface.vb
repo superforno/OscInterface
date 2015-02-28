@@ -6,18 +6,23 @@ Public Class OscInterface
 
 #Region "OscInterface --> Local variables"
 
-    Dim _client As UdpClient
-    Dim _destination As IPEndPoint
-    Dim _localPort As Integer
+    Dim _client As UdpClient = Nothing
+    Dim _destination As IPEndPoint = Nothing
+    Dim _localPort As Integer = 0
+    Dim _recvFrom As IPEndPoint = Nothing
 
 #End Region
 
 #Region "OscInterface --> Contructor - Destructor"
 
-    Public Sub New(ByVal IP As String, ByVal Port As Integer)
-        _localPort = RandomNumber(50000, 60000)
+    Public Sub New(ByVal IP As String, ByVal Port As Integer, Optional ByVal LocalPort As Integer = 0)
+        _localPort = LocalPort
+        If _localPort = 0 Then
+            _localPort = RandomNumber(50000, 60000)
+        End If
         _client = New UdpClient(_localPort)
         _destination = New IPEndPoint(IPAddress.Parse(IP), Port)
+        _recvFrom = New IPEndPoint(IPAddress.Parse(IP), _localPort)
     End Sub
 
     Protected Overrides Sub Finalize()
@@ -68,7 +73,10 @@ Public Class OscInterface
     Private Sub UDPRecv(ByVal ar As IAsyncResult)
         Try
             '' Next statement will throw when the socket was closed
-            Dim recvBytes As Byte() = _client.EndReceive(ar, New IPEndPoint(IPAddress.Any, _localPort))
+            If _recvFrom Is Nothing Then
+                _recvFrom = New IPEndPoint(IPAddress.Any, _localPort)
+            End If
+            Dim recvBytes As Byte() = _client.EndReceive(ar, _recvFrom)
             Dim recvMsg As String = Encoding.UTF8.GetString(recvBytes)
 
             '' PARSE DATA
